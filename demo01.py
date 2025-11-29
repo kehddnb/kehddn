@@ -23,6 +23,7 @@ import pandas as pd
 import mediapipe as mp
 import matplotlib.pyplot as plt
 from google.colab import files
+import numpy.typing as npt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tensorflow import keras
@@ -219,7 +220,20 @@ def pose_landmarks_to_vector(landmarks) -> np.ndarray:
     vec = np.array(coords, dtype=np.float32)
     if vec.shape[0] != 99:
         raise ValueError(f"벡터 길이가 99가 아닙니다: {vec.shape}")
+    if not np.all(np.isfinite(vec)):
+        raise ValueError("NaN 또는 무한대 값을 포함한 포즈 벡터입니다.")
     return vec
+
+
+# ------------------------------------------------------------
+# 7-1. 특징 벡터 검증 유틸리티
+# ------------------------------------------------------------
+def validate_pose_vector(vec: npt.NDArray[np.float32]):
+    """포즈 특징 벡터의 형태와 유효성을 점검."""
+    if vec.shape != (99,):
+        raise ValueError(f"포즈 벡터는 (99,)여야 합니다. 현재 shape={vec.shape}")
+    if not np.all(np.isfinite(vec)):
+        raise ValueError("포즈 벡터에 NaN/Inf가 포함되어 있습니다.")
 
 
 # ============================================================
@@ -227,8 +241,7 @@ def pose_landmarks_to_vector(landmarks) -> np.ndarray:
 # ============================================================
 def append_sample_to_dataset(vec, label, csv_path="pose_dataset.csv"):
     """단일 샘플을 pose_dataset.csv에 추가."""
-    if vec.shape != (99,):
-        raise ValueError("vec는 (99,) 형태여야 합니다.")
+    validate_pose_vector(vec.astype(np.float32))
 
     columns = [f"v{i}" for i in range(99)] + ["label"]
     row = list(vec.astype(float)) + [label]
@@ -268,6 +281,8 @@ def load_pose_dataset(csv_path="pose_dataset.csv"):
     feature_cols = [f"v{i}" for i in range(99)]
     X = df[feature_cols].values.astype(np.float32)
     y_text = df["label"].astype(str).values
+    if not np.all(np.isfinite(X)):
+        raise ValueError("데이터셋에 NaN/Inf가 포함되어 있습니다. 입력 파일을 확인하세요.")
     return X, y_text
 
 
