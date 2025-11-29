@@ -296,6 +296,14 @@ def train_pose_classifier(csv_path="pose_dataset.csv"):
     le = LabelEncoder()
     y = le.fit_transform(y_text)
 
+    unique, counts = np.unique(y, return_counts=True)
+    if len(unique) < 2:
+        raise ValueError("라벨 종류가 최소 2개 이상이어야 합니다. 더 다양한 포즈를 수집하세요.")
+    if np.any(counts < 2):
+        raise ValueError(
+            "각 라벨당 최소 2개 이상의 샘플이 필요합니다. 추가 수집 후 다시 시도하세요."
+        )
+
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
